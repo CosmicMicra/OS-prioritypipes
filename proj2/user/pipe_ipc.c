@@ -1,13 +1,8 @@
-// proj2/user/ipc_test.c
 #include "kernel/types.h"
-#include "kernel/stat.h"
+#include "kernel/stat.h" 
 #include "user/user.h"
 
-#define NUM_CLIENTS 3
-#define BUFFER_SIZE sizeof(task_t)
-
 typedef struct task_t {
-    int priority;  // Added for Part 2
     int x;
     int y;
     char op;
@@ -15,98 +10,128 @@ typedef struct task_t {
     int error;
 } task_t;
 
-// Calculate function similar to HW1
 int calc(int x, int y, char op, int *result) {
     switch(op) {
         case '+':
             *result = x + y;
-            return 0;
+            break;
         case '-':
             *result = x - y;
-            return 0;
+            break;
         case '*':
             *result = x * y;
-            return 0;
+            break;
         case '/':
-            if (y == 0) return -1;
+            if(y == 0)
+                return -1;
             *result = x / y;
-            return 0;
+            break;
         default:
             return -1;
     }
+    return 0;
 }
 
 void server(int read_fd, int write_fd) {
     task_t task;
-    while (1) {
-        // Read task from pipe
-        if (read(read_fd, &task, BUFFER_SIZE) != BUFFER_SIZE) {
-            break;
-        }
-
-        // Process task
+    
+    printf("Server started.\n");
+    
+    while(read(read_fd, &task, sizeof(task_t)) > 0) {
         task.error = calc(task.x, task.y, task.op, &task.result);
-
-        // Write result back
-        write(write_fd, &task, BUFFER_SIZE);
+        write(write_fd, &task, sizeof(task_t));
+        sleep(1);
     }
+    exit(0);
 }
 
-void client(int write_fd, int read_fd, task_t task) {
-    // Send task
-    write(write_fd, &task, BUFFER_SIZE);
+void client(int write_fd, int read_fd, int x, int y, char op) {
+    task_t task;
+    
+   
+    task.x = x;
+    task.y = y;
+    task.op = op;
 
-    // Read result
-    read(read_fd, &task, BUFFER_SIZE);
-
-    if (task.error == 0) {
-        printf("Result for %d %c %d = %d (priority: %d)\n", 
-               task.x, task.op, task.y, task.result, task.priority);
+    // Send task to server
+    write(write_fd, &task, sizeof(task_t));
+    
+    // Get result back
+    read(read_fd, &task, sizeof(task_t));
+    
+    // Print result
+    if(task.error == 0) {
+        printf("Result: %d ", task.x);
+        write(1, &task.op, 1);
+        printf(" %d = %d\n", task.y, task.result);
     } else {
-        printf("Error in calculation (priority: %d)\n", task.priority);
+        printf("division by zero- invalid\n");
     }
+    
+    exit(0);
 }
 
-int main() {
-    int p1[2], p2[2];  
+int main(int argc, char *argv[]) {
+    int p1[2], p2[2]; 
 
-    // Create pipes
-    if (pipe(p1) < 0 || pipe(p2) < 0) {
+    printf("Starting test...\n");
+
+    if(pipe(p1) < 0 || pipe(p2) < 0) {
         printf("Pipe creation failed\n");
         exit(1);
     }
 
-    // Create clients
-    for (int i = 0; i < NUM_CLIENTS; i++) {
-        if (fork() == 0) {  // Child process (client)
-            close(p1[0]);  // Close unused pipe ends
-            close(p2[1]);
-
-            
-            task_t task = {
-                .priority = i + 1,  // Different priorities
-                .x = i + 5,
-                .y = i + 1,
-                .op = "+-*/"[i % 4],
-                .result = 0,
-                .error = 0
-            };
-
-            client(p1[1], p2[0], task);
-            exit(0);
-        }
+    // Create server process
+    if(fork() == 0) {
+        close(p1[1]);
+        close(p2[0]); 
+        server(p1[0], p2[1]);
     }
 
-    // Parent process (server)
-    close(p1[1]);  // Close unused pipe ends
+    sleep(1); // Let server start
+
+    // Create three client processes with different operations
+    if(fork() == 0) {
+        close(p1[0]);
+        close(p2[1]);
+        client(p1[1], p2[0], 10, 5, '+');
+    }
+    sleep(1);
+
+    if(fork() == 0) {
+        close(p1[0]);
+        close(p2[1]);
+        client(p1[1], p2[0], 20, 4, '*');
+    }
+    sleep(1);
+
+    if(fork() == 0) {
+        close(p1[0]); 
+        close(p2[1]);
+        client(p1[1], p2[0], 15, 3, '/');
+    }
+    sleep(1);
+    
+    // Test division by zero
+    if(fork() == 0) {
+        close(p1[0]); 
+        close(p2[1]);
+        client(p1[1], p2[0], 10, 0, '/');
+    }
+    sleep(1);
+
+
+    // Parent closes all pipe ends
+    close(p1[0]);
+    close(p1[1]);
     close(p2[0]);
+    close(p2[1]);
 
-    server(p1[0], p2[1]);
-
-    // Wait for all children
-    for (int i = 0; i < NUM_CLIENTS; i++) {
+    // Wait for all children to finish
+    for(int i = 0; i < 5; i++) {
         wait(0);
     }
 
+    printf("Test completed.\n");
     exit(0);
 }
