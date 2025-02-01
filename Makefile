@@ -159,6 +159,7 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_test_pipe_rt\
+	$U/_pipe_ipc\
 
 # File system image
 fs.img: mkfs/mkfs README $(UPROGS)
