@@ -1,3 +1,7 @@
+//
+// Support functions for system calls that involve file descriptors.
+//
+
 #include "types.h"
 #include "riscv.h"
 #include "defs.h"
@@ -8,7 +12,6 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
-#include "pipe_rt.h"
 
 struct devsw devsw[NDEV];
 struct {
@@ -20,21 +23,6 @@ void
 fileinit(void)
 {
   initlock(&ftable.lock, "ftable");
-}
-
-int
-fdalloc(struct file *f)
-{
-  int fd;
-  struct proc *p = myproc();
-
-  for(fd = 0; fd < NOFILE; fd++){
-    if(p->ofile[fd] == 0){
-      p->ofile[fd] = f;
-      return fd;
-    }
-  }
-  return -1;
 }
 
 // Allocate a file structure.
@@ -87,8 +75,6 @@ fileclose(struct file *f)
 
   if(ff.type == FD_PIPE){
     pipeclose(ff.pipe, ff.writable);
-  } else if(ff.type == FD_PIPE_RT){                   
-    pipe_rt_close((struct pipe_rt*)ff.pipe, ff.writable);  
   } else if(ff.type == FD_INODE || ff.type == FD_DEVICE){
     begin_op();
     iput(ff.ip);
@@ -125,26 +111,19 @@ fileread(struct file *f, uint64 addr, int n)
   if(f->readable == 0)
     return -1;
 
-  switch(f->type) {
-    case FD_PIPE:
-      r = piperead(f->pipe, addr, n);
-      break;
-    case FD_PIPE_RT:
-      r = pipe_rt_read((struct pipe_rt*)f->pipe, addr, n);  
-      break;
-    case FD_INODE:
-      ilock(f->ip);
-      if((r = readi(f->ip, 1, addr, f->off, n)) > 0)
-        f->off += r;
-      iunlock(f->ip);
-      break;
-    case FD_DEVICE:
-      if(f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
-        return -1;
-      r = devsw[f->major].read(1, addr, n);
-      break;
-    default:
-      panic("fileread");
+  if(f->type == FD_PIPE){
+    r = piperead(f->pipe, addr, n);
+  } else if(f->type == FD_DEVICE){
+    if(f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
+      return -1;
+    r = devsw[f->major].read(1, addr, n);
+  } else if(f->type == FD_INODE){
+    ilock(f->ip);
+    if((r = readi(f->ip, 1, addr, f->off, n)) > 0)
+      f->off += r;
+    iunlock(f->ip);
+  } else {
+    panic("fileread");
   }
 
   return r;
@@ -160,44 +139,40 @@ filewrite(struct file *f, uint64 addr, int n)
   if(f->writable == 0)
     return -1;
 
-  switch(f->type) {
-    case FD_PIPE:
-      ret = pipewrite(f->pipe, addr, n);
-      break;
-    case FD_PIPE_RT:
-      ret = pipe_rt_write((struct pipe_rt*)f->pipe, addr, n);  // Updated for FD_PIPE_RT
-      break;
-    case FD_INODE:
-      int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
-      int i = 0;
-      while(i < n){
-        int n1 = n - i;
-        if(n1 > max)
-          n1 = max;
+  if(f->type == FD_PIPE){
+    ret = pipewrite(f->pipe, addr, n);
+  } else if(f->type == FD_DEVICE){
+    if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+      return -1;
+    ret = devsw[f->major].write(1, addr, n);
+  } else if(f->type == FD_INODE){
+   
+   
+    int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
+    int i = 0;
+    while(i < n){
+      int n1 = n - i;
+      if(n1 > max)
+        n1 = max;
 
-        begin_op();
-        ilock(f->ip);
-        if((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0)
-          f->off += r;
-        iunlock(f->ip);
-        end_op();
+      begin_op();
+      ilock(f->ip);
+      if ((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0)
+        f->off += r;
+      iunlock(f->ip);
+      end_op();
 
-        if(r != n1){
-          // error from writei
-          break;
-        }
-        i += r;
+      if(r != n1){
+        // error from writei
+        break;
       }
-      ret = (i == n ? n : -1);
-      break;
-    case FD_DEVICE:
-      if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
-        return -1;
-      ret = devsw[f->major].write(1, addr, n);
-      break;
-    default:
-      panic("filewrite");
+      i += r;
+    }
+    ret = (i == n ? n : -1);
+  } else {
+    panic("filewrite");
   }
 
   return ret;
 }
+

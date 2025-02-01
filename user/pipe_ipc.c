@@ -68,7 +68,7 @@ void client(int write_fd, int read_fd, task_t task) {
 }
 
 int main() {
-    int p1[2], p2[2];  // Two pipes: p1 for requests, p2 for responses
+    int p1[2], p2[2];  
 
     // Create pipes
     if (pipe(p1) < 0 || pipe(p2) < 0) {
@@ -82,7 +82,7 @@ int main() {
             close(p1[0]);  // Close unused pipe ends
             close(p2[1]);
 
-            // Create sample task
+            
             task_t task = {
                 .priority = i + 1,  // Different priorities
                 .x = i + 5,

@@ -1,3 +1,4 @@
+// Support functions for system calls that involve file descriptors.
 #include "types.h"
 #include "riscv.h"
 #include "defs.h"
@@ -8,9 +9,9 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
-#include "pipe_rt.h"
 
 struct devsw devsw[NDEV];
+
 struct {
   struct spinlock lock;
   struct file file[NFILE];
@@ -20,21 +21,6 @@ void
 fileinit(void)
 {
   initlock(&ftable.lock, "ftable");
-}
-
-int
-fdalloc(struct file *f)
-{
-  int fd;
-  struct proc *p = myproc();
-
-  for(fd = 0; fd < NOFILE; fd++){
-    if(p->ofile[fd] == 0){
-      p->ofile[fd] = f;
-      return fd;
-    }
-  }
-  return -1;
 }
 
 // Allocate a file structure.
@@ -67,7 +53,7 @@ filedup(struct file *f)
   return f;
 }
 
-// Close file f.  (Decrement ref count, close when reaches 0.)
+// Close file f. (Decrement ref count, close when reaches 0.)
 void
 fileclose(struct file *f)
 {
@@ -87,8 +73,8 @@ fileclose(struct file *f)
 
   if(ff.type == FD_PIPE){
     pipeclose(ff.pipe, ff.writable);
-  } else if(ff.type == FD_PIPE_RT){                   
-    pipe_rt_close((struct pipe_rt*)ff.pipe, ff.writable);  
+  } else if(ff.type == FD_PIPE_RT){
+    pipe_rt_close((struct pipe_rt*)ff.pipe, ff.writable);
   } else if(ff.type == FD_INODE || ff.type == FD_DEVICE){
     begin_op();
     iput(ff.ip);
@@ -129,20 +115,24 @@ fileread(struct file *f, uint64 addr, int n)
     case FD_PIPE:
       r = piperead(f->pipe, addr, n);
       break;
+      
     case FD_PIPE_RT:
-      r = pipe_rt_read((struct pipe_rt*)f->pipe, addr, n);  
+      r = pipe_rt_read((struct pipe_rt*)f->pipe, addr, n);
       break;
+      
+    case FD_DEVICE:
+      if(f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
+        return -1;
+      r = devsw[f->major].read(1, addr, n);
+      break;
+      
     case FD_INODE:
       ilock(f->ip);
       if((r = readi(f->ip, 1, addr, f->off, n)) > 0)
         f->off += r;
       iunlock(f->ip);
       break;
-    case FD_DEVICE:
-      if(f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
-        return -1;
-      r = devsw[f->major].read(1, addr, n);
-      break;
+
     default:
       panic("fileread");
   }
@@ -164,10 +154,24 @@ filewrite(struct file *f, uint64 addr, int n)
     case FD_PIPE:
       ret = pipewrite(f->pipe, addr, n);
       break;
+        
     case FD_PIPE_RT:
-      ret = pipe_rt_write((struct pipe_rt*)f->pipe, addr, n);  // Updated for FD_PIPE_RT
+      ret = pipe_rt_write((struct pipe_rt*)f->pipe, addr, n);
       break;
+      
+    case FD_DEVICE:
+      if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+        return -1;
+      ret = devsw[f->major].write(1, addr, n);
+      break;
+      
     case FD_INODE:
+      // write a few blocks at a time to avoid exceeding
+      // the maximum log transaction size, including
+      // i-node, indirect block, allocation blocks,
+      // and 2 blocks of slop for non-aligned writes.
+      // this really belongs lower down, since writei()
+      // might be writing a device like the console.
       int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
       int i = 0;
       while(i < n){
@@ -177,7 +181,7 @@ filewrite(struct file *f, uint64 addr, int n)
 
         begin_op();
         ilock(f->ip);
-        if((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0)
+        if ((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0)
           f->off += r;
         iunlock(f->ip);
         end_op();
@@ -190,11 +194,7 @@ filewrite(struct file *f, uint64 addr, int n)
       }
       ret = (i == n ? n : -1);
       break;
-    case FD_DEVICE:
-      if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
-        return -1;
-      ret = devsw[f->major].write(1, addr, n);
-      break;
+
     default:
       panic("filewrite");
   }

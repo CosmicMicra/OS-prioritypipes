@@ -3,6 +3,7 @@ struct context;
 struct file;
 struct inode;
 struct pipe;
+struct pipe_rt;
 struct proc;
 struct spinlock;
 struct sleeplock;
@@ -33,6 +34,7 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
+int             fdalloc(struct file*);
 
 // fs.c
 void            fsinit(int);
@@ -75,6 +77,14 @@ int             pipealloc(struct file**, struct file**);
 void            pipeclose(struct pipe*, int);
 int             piperead(struct pipe*, uint64, int);
 int             pipewrite(struct pipe*, uint64, int);
+
+// pipe_rt.c
+int             pipe_rt_alloc(struct file**, struct file**);
+void            pipe_rt_close(struct pipe_rt*, int);
+int             pipe_rt_read(struct pipe_rt*, uint64, int);
+int             pipe_rt_write(struct pipe_rt*, uint64, int);
+
+
 
 // printf.c
 int            printf(char*, ...) __attribute__ ((format (printf, 1, 2)));
