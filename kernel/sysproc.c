@@ -91,3 +91,17 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+
+uint64 
+sys_set_cpu_affinity(void) {
+    int mask;
+    argint(0, &mask);
+
+    struct proc *p = myproc();
+    acquire(&p->lock);
+    p->cpu_mask = mask;
+    release(&p->lock);
+    
+    return 0;  // Success
+}

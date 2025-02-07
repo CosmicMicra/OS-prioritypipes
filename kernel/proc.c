@@ -441,39 +441,38 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
-void
-scheduler(void)
-{
+void scheduler(void) {
   struct proc *p;
   struct cpu *c = mycpu();
 
   c->proc = 0;
-  for(;;){
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting.
+  for (;;) {
+    // Enable interrupts to avoid deadlocks if all processes are waiting
     intr_on();
 
     int found = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
+    int id = cpuid();  // Get the current CPU ID
+
+    for (p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
+
+      // Check if process is runnable and if it is allowed to run on this CPU
+      if (p->state == RUNNABLE && (p->cpu_mask == 0 || (p->cpu_mask & (1 << id)))) {
+        // Switch to chosen process
         p->state = RUNNING;
         c->proc = p;
         swtch(&c->context, &p->context);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
+        // Process is done running for now; reset CPU's proc
         c->proc = 0;
         found = 1;
       }
+
       release(&p->lock);
     }
-    if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
+
+    if (found == 0) {
+      // No runnable processes; halt CPU until next interrupt
       intr_on();
       asm volatile("wfi");
     }

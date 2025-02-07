@@ -37,3 +37,4 @@ entry("sbrk");
 entry("sleep");
 entry("uptime");
 entry("pipe_rt");
+entry("set_cpu_affinity");

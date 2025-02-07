@@ -1,3 +1,5 @@
+#include "kernel/types.h"
+
 struct stat;
 
 // system calls
@@ -23,6 +25,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int pipe_rt(int*);
+int set_cpu_affinity(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

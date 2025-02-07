@@ -102,6 +102,7 @@ extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
 extern uint64 sys_pipe_rt(void);
+extern uint64 sys_set_cpu_affinity(void);
 
 
 // An array mapping syscall numbers from syscall.h
@@ -129,6 +130,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_pipe_rt] sys_pipe_rt,
+[SYS_set_cpu_affinity] sys_set_cpu_affinity,
 };
 
 void
