@@ -38,3 +38,5 @@ entry("sleep");
 entry("uptime");
 entry("pipe_rt");
 entry("set_cpu_affinity");
+entry("setperiod");
+entry("wait_until_next_period");

@@ -2,6 +2,11 @@
 K=kernel
 U=user
 
+include proj2/user/Makefile
+include proj3/user/Makefile
+include proj2/kernel/Makefile
+
+
 OBJS = \
 	$K/entry.o \
 	$K/start.o \
@@ -33,7 +38,7 @@ OBJS = \
 	$K/pqueue.o \
 	$K/pipe_rt.o
 
-include proj2/kernel/Makefile
+
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -135,8 +140,7 @@ kernel: $(OBJS) $K/kernel.ld $U/initcode
 	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 	
-include proj2/user/Makefile
-include proj3/user/Makefile
+
 
 # User programs
 UPROGS=\
@@ -159,7 +163,8 @@ UPROGS=\
 	$U/_test_pipe_rt\
 	$U/_pipe_ipc\
 	$U/_test_affinity\
-
+	$U/_part_test\
+	
 # File system image
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
