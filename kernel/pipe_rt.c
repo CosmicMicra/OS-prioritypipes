@@ -1,6 +1,6 @@
-//
-// Real-time pipe implementation with priority queue
-//
+
+// Priority pipe implementation with priority queue
+
 
 #include "types.h"
 #include "riscv.h"
@@ -31,14 +31,22 @@ pq_insert(struct pq_node **head, struct task_t task)
 
     // Find correct position
     struct pq_node *current = *head;
-    while (current->next != 0 && 
-           current->next->task.priority >= task.priority) {
+    struct pq_node *prev = *head;
+
+    while (current != 0 && current->task.priority >= task.priority) {
+        prev = current;
         current = current->next;
     }
 
-    new->next = current->next;
-    current->next = new;
+    if (prev) {
+        new->next = prev->next;
+        prev->next = new;
+    } else {
+        new->next = *head;
+        *head = new;}
 }
+    
+
 
 static struct task_t
 pq_remove(struct pq_node **head)

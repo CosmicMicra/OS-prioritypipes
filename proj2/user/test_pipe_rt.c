@@ -7,7 +7,7 @@ typedef struct task_t {
     int x;
     int y;
     char op;      // Supports "+", "-", "*", "/"
-    int *result;  // Stores the computation result
+    int *result;  // Stores the  result
     int *error;   // Returns error if the input is invalid
 } task_t;
 
@@ -54,7 +54,8 @@ int main() {
     task_t tasks[] = {
         {1, 10, 5, '+', 0, 0},   // Low priority
         {3, 20, 4, '*', 0, 0},   // High priority
-        {2, 15, 3, '/', 0, 0}    // Medium priority
+        {2, 15, 3, '/', 0, 0},   // Medium priority
+        {4, 2, 1, '-', 0, 0}
     };
     int n_tasks = sizeof(tasks)/sizeof(task_t);
     
@@ -82,7 +83,7 @@ int main() {
             close(p2[1]);
             client(p1[1], p2[0], tasks[i]);
         }
-        sleep(1);  // Space out client creation
+        sleep(1);
     }
     
     // Parent closes all pipe ends
