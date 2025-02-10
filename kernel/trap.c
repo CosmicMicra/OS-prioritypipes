@@ -6,8 +6,17 @@
 #include "proc.h"
 #include "defs.h"
 
+struct xv6timer_t {
+    int expiry;         // Number of ticks between interrupts
+    uint next_tick;     
+    struct proc *proc;  
+    void (*callback)(struct xv6timer_t *);  // Add this line
+};
+    
 struct spinlock tickslock;
 uint ticks;
+
+extern struct proc proc[NPROC];  
 
 extern char trampoline[], uservec[], userret[];
 
@@ -160,19 +169,51 @@ kerneltrap()
   w_sstatus(sstatus);
 }
 
-void
-clockintr()
+void xv6timer_init(struct xv6timer_t *ptimer, struct proc *proc) {
+    ptimer->proc = proc;
+    ptimer->expiry = 0;
+    ptimer->next_tick = 0;
+    ptimer->callback = 0;
+}
+
+void xv6timer_forward(struct xv6timer_t *ptimer, int expiry) {
+    ptimer->expiry = expiry;
+    ptimer->next_tick = ticks + expiry;
+}
+
+void xv6timer_register_callback(struct xv6timer_t *ptimer, void (*callback)(struct xv6timer_t *)) {
+    ptimer->callback = callback;
+}
+
+void xv6timer_interrupt(struct xv6timer_t *ptimer) {
+    if (ticks >= ptimer->next_tick && ptimer->callback) {
+        ptimer->callback(ptimer);
+    }
+}
+
+
+void clockintr()
 {
   if(cpuid() == 0){
     acquire(&tickslock);
     ticks++;
+    // Add timer checks here
+    struct proc *p;
+    for(p = proc; p < &proc[NPROC]; p++) {
+      if(p->state != UNUSED && p->timer) {
+        if(ticks >= p->timer->next_tick) {
+          // Call the callback instead of directly changing state
+          if(p->timer->callback) {
+            p->timer->callback(p->timer);
+            p->timer->next_tick = ticks + p->timer->expiry;
+          }
+        }
+      }
+    }
+    
     wakeup(&ticks);
     release(&tickslock);
   }
-
-  // ask for the next timer interrupt. this also clears
-  // the interrupt request. 1000000 is about a tenth
-  // of a second.
   w_stimecmp(r_time() + 1000000);
 }
 
@@ -207,6 +248,7 @@ devintr()
       plic_complete(irq);
 
     return 1;
+
   } else if(scause == 0x8000000000000005L){
     // timer interrupt.
     clockintr();

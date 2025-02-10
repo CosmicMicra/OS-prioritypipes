@@ -9,6 +9,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct xv6timer_t;  
 
 // bio.c
 void            binit(void);
@@ -157,6 +158,14 @@ void            trapinit(void);
 void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
+
+//xv6timer_t
+void xv6timer_init(struct xv6timer_t *ptimer, struct proc *proc);
+void xv6timer_forward(struct xv6timer_t *ptimer, int expiry);
+void xv6timer_register_callback(struct xv6timer_t *ptimer, void (*callback)(struct xv6timer_t *));
+void xv6timer_interrupt(struct xv6timer_t *ptimer);
+void period_callback(struct xv6timer_t *timer);
+
 
 // uart.c
 void            uartinit(void);

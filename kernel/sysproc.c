@@ -6,6 +6,18 @@
 #include "spinlock.h"
 #include "proc.h"
 
+struct xv6timer_t {
+    int expiry;         // Number of ticks between interrupts
+    uint next_tick;     // Tick count when timer should trigger next
+    struct proc *proc;  // Associated process
+    void (*callback)(struct xv6timer_t *);  // Callback function
+};
+
+void xv6timer_init(struct xv6timer_t *ptimer, struct proc *proc);
+void xv6timer_forward(struct xv6timer_t *ptimer, int expiry);
+void xv6timer_register_callback(struct xv6timer_t *ptimer, void (*callback)(struct xv6timer_t *));
+void xv6timer_interrupt(struct xv6timer_t *ptimer);
+
 uint64
 sys_exit(void)
 {
@@ -90,4 +102,62 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+
+uint64 
+sys_set_cpu_affinity(void) {
+    int mask;
+    argint(0, &mask);
+
+    struct proc *p = myproc();
+    acquire(&p->lock);
+    p->cpu_mask = mask;
+    release(&p->lock);
+    
+    return 0;  // Success
+}
+
+void period_callback(struct xv6timer_t *timer) {
+    struct proc *p = timer->proc;
+    acquire(&p->lock);
+    if(p->state == SLEEPING) {
+        p->state = RUNNABLE;
+    }
+    release(&p->lock);
+}
+
+
+uint64 sys_setperiod(void) {
+    int period;
+    argint(0, &period);
+    if(period < 1) return -1;
+    
+    struct proc *p = myproc();
+    if(p->timer == 0) {
+        p->timer = (struct xv6timer_t*)kalloc();
+        if(p->timer == 0) return -1;
+        
+        
+        xv6timer_init(p->timer, p);
+        xv6timer_register_callback(p->timer, period_callback);
+    }
+    
+    
+    xv6timer_forward(p->timer, period);
+    return 0;
+}
+
+
+
+uint64 sys_wait_until_next_period(void) {
+    struct proc *p = myproc();
+    if(p->timer == 0)
+        return -1;
+        
+    acquire(&p->lock);
+    p->state = SLEEPING;
+    sched();
+    release(&p->lock);
+    return 0;
 }

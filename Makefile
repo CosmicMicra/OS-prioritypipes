@@ -2,6 +2,9 @@
 K=kernel
 U=user
 
+include proj2/user/Makefile
+include proj3/user/Makefile
+include proj2/kernel/Makefile
 
 
 OBJS = \
@@ -34,8 +37,6 @@ OBJS = \
 	$K/virtio_disk.o \
 	$K/pqueue.o \
 	$K/pipe_rt.o
-
-
 
 
 
@@ -140,6 +141,7 @@ kernel: $(OBJS) $K/kernel.ld $U/initcode
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 	
 
+
 # User programs
 UPROGS=\
 	$U/_cat\
@@ -160,7 +162,9 @@ UPROGS=\
 	$U/_zombie\
 	$U/_test_pipe_rt\
 	$U/_pipe_ipc\
-
+	$U/_test_affinity\
+	$U/_part_test\
+	
 # File system image
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
