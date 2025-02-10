@@ -7,7 +7,6 @@
 
 void periodic_task(int period, int iterations) {
     sleep(1);
-    printf("Starting periodic task with period %d ticks\n", period);
     
     if (setperiod(period) < 0) {
         printf("Error: setperiod failed\n");
