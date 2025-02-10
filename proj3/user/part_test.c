@@ -6,17 +6,15 @@
 #include "user/user.h"
 
 void periodic_task(int period, int iterations) {
-    sleep(1);
-    
     if (setperiod(period) < 0) {
         printf("Error: setperiod failed\n");
         exit(1);
     }
 
     for (int i = 0; i < iterations; i++) {
-        sleep(1);
         printf("Task with period %d: iteration %d\n", period, i);
-        
+        sleep(1);
+
         // Simulate some work
         for(volatile int j = 0; j < 1000000; j++);
         
@@ -40,6 +38,8 @@ int main(int argc, char *argv[]) {
     if (fork() == 0) {
         periodic_task(10, 5);  // Task 1: period 10 ticks, 5 iterations
     }
+
+    sleep(15);
     
     if (fork() == 0) {
         periodic_task(20, 3);  // Task 2: period 20 ticks, 3 iterations
