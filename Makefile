@@ -164,6 +164,7 @@ UPROGS=\
 	$U/_pipe_ipc\
 	$U/_test_affinity\
 	$U/_test_tasks\
+	$U/_test_rm\
 	
 # File system image
 fs.img: mkfs/mkfs README $(UPROGS)

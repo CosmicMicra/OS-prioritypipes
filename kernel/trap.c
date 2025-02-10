@@ -194,28 +194,41 @@ void xv6timer_interrupt(struct xv6timer_t *ptimer) {
 
 void clockintr()
 {
-  if(cpuid() == 0){
+  if(cpuid() == 0) {  // Only handle on CPU 0
     acquire(&tickslock);
     ticks++;
-    // Add timer checks here
+
     struct proc *p;
-    for(p = proc; p < &proc[NPROC]; p++) {
-      if(p->state != UNUSED && p->timer) {
-        if(ticks >= p->timer->next_tick) {
-          // Call the callback instead of directly changing state
-          if(p->timer->callback) {
-            p->timer->callback(p->timer);
-            p->timer->next_tick = ticks + p->timer->expiry;
+    for (p = proc; p < &proc[NPROC]; p++) {
+      // Check if the process is periodic and has a valid timer
+      if (p->state != UNUSED && p->is_periodic) {
+        // Check if the process's next deadline has passed
+        if (ticks >= p->next_deadline) {
+          // Call the callback function for the periodic task
+          if (p->timer && p->timer->callback) {
+            p->timer->callback(p->timer);  // Invoke the callback
+          }
+
+          // Update the process's next deadline (schedule the next period)
+          p->next_deadline = ticks + p->period;
+
+          // If the process is sleeping, wake it up
+          if (p->state == SLEEPING) {
+            p->state = RUNNABLE;  // Wake up the process
+            sched();  // Reschedule the process if necessary
           }
         }
       }
     }
-    
-    wakeup(&ticks);
+
+    wakeup(&ticks);  // Wake up any process that might be waiting on ticks
     release(&tickslock);
   }
+
+  // Reset the time comparator for the next interrupt
   w_stimecmp(r_time() + 1000000);
 }
+
 
 // check if it's an external interrupt or software interrupt,
 // and handle it.

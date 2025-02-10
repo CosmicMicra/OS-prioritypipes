@@ -444,34 +444,55 @@ wait(uint64 addr)
 void scheduler(void) {
   struct proc *p;
   struct cpu *c = mycpu();
-
+  
   c->proc = 0;
   for (;;) {
-    // Enable interrupts to avoid deadlocks if all processes are waiting
-    intr_on();
+    intr_on();  // Enable interrupts to avoid deadlocks
 
-    int found = 0;
-    int id = cpuid();  // Get the current CPU ID
+    struct proc *selected_proc = 0;  // Best periodic task
+    int min_period = __INT_MAX__;    // Shortest period seen
+    int id = cpuid();                // Current CPU ID
 
+    // 1️⃣ **Find the highest-priority periodic task (shortest period)**
     for (p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
 
-      // Check if process is runnable and if it is allowed to run on this CPU
-      if (p->state == RUNNABLE && (p->cpu_mask == 0 || (p->cpu_mask & (1 << id)))) {
-        // Switch to chosen process
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now; reset CPU's proc
-        c->proc = 0;
-        found = 1;
+      if (p->state == RUNNABLE && p->is_periodic) {
+        if (p->period < min_period) {
+          min_period = p->period;
+          selected_proc = p;
+        }
       }
 
       release(&p->lock);
     }
 
-    if (found == 0) {
+    // 2️⃣ **If no periodic task was found, fallback to RR**
+    if (selected_proc == 0) {
+      for (p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+
+        // Check if process is runnable and respects CPU affinity
+        if (p->state == RUNNABLE && (p->cpu_mask == 0 || (p->cpu_mask & (1 << id)))) {
+          selected_proc = p;
+          break;  // Select first available RR process
+        }
+
+        release(&p->lock);
+      }
+    }
+
+    // 3️⃣ **Run the selected process**
+    if (selected_proc) {
+      acquire(&selected_proc->lock);
+      if (selected_proc->state == RUNNABLE) {
+        selected_proc->state = RUNNING;
+        c->proc = selected_proc;
+        swtch(&c->context, &selected_proc->context);
+        c->proc = 0;
+      }
+      release(&selected_proc->lock);
+    } else {
       // No runnable processes; halt CPU until next interrupt
       intr_on();
       asm volatile("wfi");
