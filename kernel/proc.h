@@ -83,9 +83,10 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
-    int is_periodic;       // 1 if the process is periodic, 0 otherwise
-    int period;            // Period in ticks
-    int next_deadline;     // Next wake-up time (in ticks)
+  int period;    // Period in ticks (assigned via setperiod)
+  int next_run;  // The next tick when this process should run
+  int is_periodic; // Boolean flag for periodic tasks
+
 
   struct spinlock lock;
 

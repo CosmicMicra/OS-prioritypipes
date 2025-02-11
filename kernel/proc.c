@@ -444,8 +444,8 @@ wait(uint64 addr)
 void scheduler(void) {
   struct proc *p;
   struct cpu *c = mycpu();
-
   c->proc = 0;
+
   for (;;) {
     // Enable interrupts to avoid deadlocks if all processes are waiting
     intr_on();
@@ -453,31 +453,67 @@ void scheduler(void) {
     int found = 0;
     int id = cpuid();  // Get the current CPU ID
 
+    struct proc *selected_proc = 0;
+
+    // Step 1: Check for periodic tasks with the earliest next_run time (highest priority)
     for (p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
+      acquire(&p->lock);  // Acquire the process lock
 
       // Check if process is runnable and if it is allowed to run on this CPU
       if (p->state == RUNNABLE && (p->cpu_mask == 0 || (p->cpu_mask & (1 << id)))) {
-        // Switch to chosen process
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now; reset CPU's proc
-        c->proc = 0;
-        found = 1;
+        // If it's a periodic task and it's the first one or has an earlier next_run time
+        if (p->timer != 0) {  // Only consider periodic tasks (those with a timer)
+          if (selected_proc == 0 || p->next_run < selected_proc->next_run) {
+            selected_proc = p;
+          }
+        }
       }
 
-      release(&p->lock);
+      release(&p->lock);  // Release the process lock
     }
 
+    // Step 2: If a periodic task was found, run it
+    if (selected_proc != 0) {
+      acquire(&selected_proc->lock);  // Lock the selected process
+      selected_proc->state = RUNNING;  // Set the process to running
+      c->proc = selected_proc;        // Assign it to the current CPU
+      swtch(&c->context, &selected_proc->context);  // Switch to the process
+
+      // Process is done running for now; reset CPU's proc
+      c->proc = 0;
+      found = 1;
+
+      release(&selected_proc->lock);  // Release the process lock
+    } else {
+      // Step 3: No periodic tasks are ready, fallback to round-robin scheduling
+      for (p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);  // Lock the process
+
+        // Check if process is runnable and if it is allowed to run on this CPU
+        if (p->state == RUNNABLE && (p->cpu_mask == 0 || (p->cpu_mask & (1 << id)))) {
+          // Run the first available non-periodic (or periodic) task
+          p->state = RUNNING;  // Set the process to running
+          c->proc = p;         // Assign it to the current CPU
+          swtch(&c->context, &p->context);  // Switch to the process
+
+          // Process is done running for now; reset CPU's proc
+          c->proc = 0;
+          found = 1;
+        }
+
+        release(&p->lock);  // Release the process lock
+      }
+    }
+
+    // Step 4: If no processes are found to run, halt the CPU
     if (found == 0) {
       // No runnable processes; halt CPU until next interrupt
       intr_on();
-      asm volatile("wfi");
+      asm volatile("wfi");  // Wait for interrupt
     }
   }
 }
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores

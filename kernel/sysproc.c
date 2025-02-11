@@ -131,33 +131,50 @@ void period_callback(struct xv6timer_t *timer) {
 uint64 sys_setperiod(void) {
     int period;
     argint(0, &period);
-    if(period < 1) return -1;
-    
-    struct proc *p = myproc();
-    if(p->timer == 0) {
-        p->timer = (struct xv6timer_t*)kalloc();
-        if(p->timer == 0) return -1;
-        
-        
-        xv6timer_init(p->timer, p);
-        xv6timer_register_callback(p->timer, period_callback);
+    if (period < 1) {
+        return -1;  // Invalid period
     }
+
+    struct proc *p = myproc();
+    if (p->timer == 0) {
+        // Allocate a new timer for the process if it doesn't already have one
+        p->timer = (struct xv6timer_t*)kalloc();
+        if (p->timer == 0) {
+            return -1;  // Memory allocation failed
+        }
+
+        xv6timer_init(p->timer, p);  // Initialize the timer
+        p->period = period;  // Set the period
+        p->next_run = ticks + period;  // Set the next run time
+        xv6timer_register_callback(p->timer, period_callback);  // Register the callback
+    }
+
+    // Update the period and next run time
+    p->period = period;
+    p->next_run = ticks + period;
     
-    
-    xv6timer_forward(p->timer, period);
     return 0;
 }
 
-
-
 uint64 sys_wait_until_next_period(void) {
     struct proc *p = myproc();
-    if(p->timer == 0)
-        return -1;
-        
-    acquire(&p->lock);
-    p->state = SLEEPING;
-    sched();
-    release(&p->lock);
+    if (p->timer == 0) {
+        return -1;  // Process is not periodic
+    }
+
+    acquire(&p->lock);  // Lock the process to modify its state
+
+    // Sleep until the next period
+    while (ticks < p->next_run) {
+        p->state = SLEEPING;  // Set process state to sleeping
+        release(&p->lock);    // Release lock before calling sched()
+        sched();              // Yield the CPU
+        acquire(&p->lock);    // Reacquire the lock after being scheduled
+    }
+
+    // Update the next run time for the periodic task
+    p->next_run += p->period;
+
+    release(&p->lock);  // Release the lock
     return 0;
 }
