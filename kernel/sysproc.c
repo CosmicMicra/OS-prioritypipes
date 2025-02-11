@@ -6,8 +6,6 @@
 #include "spinlock.h"
 #include "proc.h"
 
-#define MAX_PERIODIC_TASKS 4  // Limit to 4 periodic tasks
-
 struct xv6timer_t {
     int expiry;         // Number of ticks between interrupts
     uint next_tick;     // Tick count when timer should trigger next
@@ -19,11 +17,6 @@ void xv6timer_init(struct xv6timer_t *ptimer, struct proc *proc);
 void xv6timer_forward(struct xv6timer_t *ptimer, int expiry);
 void xv6timer_register_callback(struct xv6timer_t *ptimer, void (*callback)(struct xv6timer_t *));
 void xv6timer_interrupt(struct xv6timer_t *ptimer);
-
-extern int periodic_task_count;  // Global counter in proc.c
-int periodic_task_count = 0;  // Initialize
-struct spinlock periodic_lock;  // Protect periodic task counter
-
 
 uint64
 sys_exit(void)
@@ -138,66 +131,33 @@ void period_callback(struct xv6timer_t *timer) {
 uint64 sys_setperiod(void) {
     int period;
     argint(0, &period);
-    if (period < 1) return -1;  // Reject invalid periods
-
+    if(period < 1) return -1;
+    
     struct proc *p = myproc();
-
-    acquire(&periodic_lock);  // Protect shared state (task count)
-
-    // Reject if too many periodic tasks
-    if (periodic_task_count >= MAX_PERIODIC_TASKS) {
-        release(&periodic_lock);
-        return -1;
-    }
-
-    // If the process is not already periodic, register it
-    if (!p->is_periodic) {
-        p->is_periodic = 1;
-        p->period = period;
-        p->next_deadline = ticks + period;
-
-        periodic_task_count++;  // Increment periodic task counter
-    }
-
-    release(&periodic_lock);
-
-    // Allocate a timer if not already set
-    if (p->timer == 0) {
+    if(p->timer == 0) {
         p->timer = (struct xv6timer_t*)kalloc();
-        if (p->timer == 0) return -1;  // Memory allocation failed
-
-        // Initialize the timer
+        if(p->timer == 0) return -1;
+        
+        
         xv6timer_init(p->timer, p);
-
-        // Register the callback function for the timer
         xv6timer_register_callback(p->timer, period_callback);
     }
-
-    // Forward the timer to the next period
+    
+    
     xv6timer_forward(p->timer, period);
-
     return 0;
 }
 
 
 
-
 uint64 sys_wait_until_next_period(void) {
     struct proc *p = myproc();
-
-    if (!p->is_periodic)  
-        return -1;  // Only periodic tasks can call this
-
+    if(p->timer == 0)
+        return -1;
+        
     acquire(&p->lock);
-
-    // Sleep until the next period
-    while (ticks < p->next_deadline) {
-        sleep(p, &p->lock);  // Put process to sleep
-    }
-
-    // Update the next deadline
-    p->next_deadline += p->period;
-
+    p->state = SLEEPING;
+    sched();
     release(&p->lock);
     return 0;
 }
