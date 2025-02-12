@@ -434,6 +434,7 @@ wait(uint64 addr)
   }
 }
 
+/* NEW VERSION
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -510,6 +511,53 @@ void scheduler(void) {
       // No runnable processes; halt CPU until next interrupt
       intr_on();
       asm volatile("wfi");  // Wait for interrupt
+    }
+  }
+}
+*/
+
+//OLD VERSION
+// Per-CPU process scheduler.
+// Each CPU calls scheduler() after setting itself up.
+// Scheduler never returns.  It loops, doing:
+//  - choose a process to run.
+//  - swtch to start running that process.
+//  - eventually that process transfers control
+//    via swtch back to the scheduler.
+void scheduler(void) {
+  struct proc *p;
+  struct cpu *c = mycpu();
+
+  c->proc = 0;
+  for (;;) {
+    // Enable interrupts to avoid deadlocks if all processes are waiting
+    intr_on();
+
+    int found = 0;
+    int id = cpuid();  // Get the current CPU ID
+
+    for (p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+
+      // Check if process is runnable and if it is allowed to run on this CPU
+      if (p->state == RUNNABLE && (p->cpu_mask == 0 || (p->cpu_mask & (1 << id)))) {
+        // Switch to chosen process
+        p->state = RUNNING;
+        c->proc = p;
+        swtch(&c->context, &p->context);
+
+        // Process is done running for now; reset CPU's proc
+        c->proc = 0;
+        found = 1;
+      }
+
+      release(&p->lock);
+    }
+
+    if (found == 0) {
+      // No runnable processes; halt CPU until next interrupt
+      intr_on();
+      asm volatile("wfi");
     }
   }
 }
