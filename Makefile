@@ -4,7 +4,7 @@ U=user
 
 include proj2/user/Makefile
 include proj3/user/Makefile
-include proj2/kernel/Makefile
+include proj4/user/Makefile
 
 
 OBJS = \
