@@ -165,6 +165,7 @@ UPROGS=\
 	$U/_test_affinity\
 	$U/_test_tasks\
 	$U/_test_rm\
+	$U/_showvm\
 	
 # File system image
 fs.img: mkfs/mkfs README $(UPROGS)

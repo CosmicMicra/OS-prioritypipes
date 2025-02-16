@@ -105,6 +105,7 @@ extern uint64 sys_pipe_rt(void);
 extern uint64 sys_set_cpu_affinity(void);
 extern uint64 sys_setperiod(void);
 extern uint64 sys_wait_until_next_period(void);
+extern uint64 sys_show_vm_areas(void);
 
 
 // An array mapping syscall numbers from syscall.h
@@ -135,6 +136,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_set_cpu_affinity] sys_set_cpu_affinity,
 [SYS_setperiod] sys_setperiod,
 [SYS_wait_until_next_period] sys_wait_until_next_period,
+[SYS_show_vm_areas] sys_show_vm_areas,
 
 };
 
