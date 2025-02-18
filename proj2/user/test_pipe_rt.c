@@ -1,9 +1,11 @@
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "user/user.h"
+#include <stddef.h>
 
 typedef struct task_t {
-    int priority;
+    int priority;  
+    int pid;  
     int x;
     int y;
     char op;      // Supports "+", "-", "*", "/"
@@ -43,19 +45,20 @@ void client(int write_fd, int read_fd, task_t task) {
     read(read_fd, &result, sizeof(result));
     read(read_fd, &error, sizeof(error));
     
-    printf("Priority %d task: %d %c %d = %d (error: %d)\n", 
-           task.priority, task.x, task.op, task.y, result, error);
-    
+    printf("%d ", task.x);
+    write(1, &task.op, 1);
+    printf(" %d = %d (error: %d)\n", 
+           task.y, result, error);
     exit(0);
 }
 
 int main() {
     int p1[2], p2[2];  // p1: client->server (priority pipe), p2: server->client (regular pipe)
     task_t tasks[] = {
-        {1, 10, 5, '+', 0, 0},   // Low priority
-        {3, 20, 4, '*', 0, 0},   // High priority
-        {2, 15, 3, '/', 0, 0},   // Medium priority
-        {4, 2, 1, '-', 0, 0}
+        {1, 0, 10, 5, '+', NULL, NULL},   // Low priority
+        {3, 0, 20, 4, '*', NULL, NULL},   // High priority
+        {2, 0, 15, 3, '/', NULL, NULL},   // Medium priority
+        {4, 0, 2, 1, '-', NULL, NULL}
     };
     int n_tasks = sizeof(tasks)/sizeof(task_t);
     

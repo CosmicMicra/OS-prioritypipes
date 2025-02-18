@@ -18,39 +18,29 @@ void pqueue_init(struct pqueue* pq) {
 
 // Push a task into the priority queue
 int pqueue_push(struct pqueue* pq, struct task_t* task) {
-    struct pq_node* new_node = (struct pq_node*)kalloc(); // Allocate memory for the new node
-    if (!new_node) return -1; // Return error if memory allocation fails
+    struct pq_node* new_node = (struct pq_node*)kalloc(); 
 
-    new_node->task = *task;  // Copy task into the new node
-    new_node->next = NULL;    // Initially, the next pointer is NULL
+    new_node->task = *task; 
+    new_node->next = NULL;    
 
-    acquire(pq->lock);  // Acquire lock for thread safety
+    acquire(pq->lock);  
 
-    // Special case: if the queue is empty, just add the new node
-    if (pq->head == NULL) {
+    // if the queue is empty,  add the new node
+    if (pq->head == NULL|| task->priority > pq->head->task.priority) {
+        new_node->next = pq->head;
         pq->head = new_node;
     } else {
-        // Traverse the list to find the correct position based on task priority
+        // find the correct position based on priority
         struct pq_node* current = pq->head;
-        struct pq_node* prev = NULL;
-
-        // Traverse through the list, finding the first task with lower priority
-        while (current != NULL && current->task.priority >= task->priority) {
-            prev = current;
+        
+        while (current->next && current->next->task.priority >= task->priority) {
             current = current->next;
         }
-
-        // Insert the new node
-        if (prev == NULL) {
-            // Insert at the head of the list (highest priority)
-            new_node->next = pq->head;
-            pq->head = new_node;
-        } else {
-            // Insert between prev and current
-            prev->next = new_node;
-            new_node->next = current;
-        }
+        new_node->next = current->next;
+        current->next = new_node;
     }
+
+    
 
     release(pq->lock);  // Release lock after modification
     return 0;  // Successfully pushed the task into the queue

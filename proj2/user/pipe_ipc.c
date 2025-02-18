@@ -65,7 +65,7 @@ void client(int write_fd, int read_fd, int x, int y, char op) {
         write(1, &task.op, 1);
         printf(" %d = %d\n", task.y, task.result);
     } else {
-        printf("division by zero- invalid\n");
+        printf("Error\n");
     }
     
     exit(0);

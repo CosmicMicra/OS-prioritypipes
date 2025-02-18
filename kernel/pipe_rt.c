@@ -30,20 +30,15 @@ pq_insert(struct pq_node **head, struct task_t task)
     }
 
     // Find correct position
-    struct pq_node *current = *head;
-    struct pq_node *prev = *head;
+    
+    
 
-    while (current != 0 && current->task.priority >= task.priority) {
-        prev = current;
+    struct pq_node *current = *head;
+    while (current->next != 0 && current->next->task.priority > task.priority) {
         current = current->next;
     }
-
-    if (prev) {
-        new->next = prev->next;
-        prev->next = new;
-    } else {
-        new->next = *head;
-        *head = new;}
+    new->next = current->next;
+    current->next = new;
 }
     
 
@@ -145,7 +140,7 @@ pipe_rt_write(struct pipe_rt *p, uint64 addr, int n)
         release(&p->lock);
         return -1;
     }
-
+    printf("Writing task with priority: %d\n", task.priority);
     // Insert into priority queue
     pq_insert(&p->head, task);
     wakeup(&p->nread);  // Wake up readers
@@ -173,7 +168,8 @@ pipe_rt_read(struct pipe_rt *p, uint64 addr, int n)
 
     // Remove highest priority task
     task = pq_remove(&p->head);
-    
+     printf("Debug: Reading task with priority %d\n", task.priority);
+
     // Copy to user space
     if (copyout(pr->pagetable, addr, (char*)&task, sizeof(task)) < 0) {
         release(&p->lock);
