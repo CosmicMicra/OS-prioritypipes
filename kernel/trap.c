@@ -6,11 +6,15 @@
 #include "proc.h"
 #include "defs.h"
 
+typedef void (*xv6timer_callback_t)(struct xv6timer_t *);
+struct xv6timer_t;  
+struct proc;  
+
 struct xv6timer_t {
     int expiry;         // Number of ticks between interrupts
-    uint next_tick;     
-    struct proc *proc;  
-    void (*callback)(struct xv6timer_t *);  // Add this line
+    uint next_tick;        
+    struct proc *proc;     
+    xv6timer_callback_t callback; 
 };
     
 struct spinlock tickslock;
@@ -178,7 +182,7 @@ void xv6timer_init(struct xv6timer_t *ptimer, struct proc *proc) {
 
 void xv6timer_forward(struct xv6timer_t *ptimer, int expiry) {
     ptimer->expiry = expiry;
-    ptimer->next_tick = ticks + expiry;
+    ptimer->next_tick = ticks + expiry;  
 }
 
 void xv6timer_register_callback(struct xv6timer_t *ptimer, void (*callback)(struct xv6timer_t *)) {
@@ -186,8 +190,9 @@ void xv6timer_register_callback(struct xv6timer_t *ptimer, void (*callback)(stru
 }
 
 void xv6timer_interrupt(struct xv6timer_t *ptimer) {
-    if (ticks >= ptimer->next_tick && ptimer->callback) {
-        ptimer->callback(ptimer);
+    if (ptimer->callback && ticks >= ptimer->next_tick) {
+        ptimer->callback(ptimer);  
+        ptimer->next_tick = ticks + ptimer->expiry;  
     }
 }
 

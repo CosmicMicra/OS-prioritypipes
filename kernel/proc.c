@@ -124,7 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
-  p->timer = 0;
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -525,41 +525,40 @@ void scheduler(void) {
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
 void scheduler(void) {
-  struct proc *p;
-  struct cpu *c = mycpu();
+    struct proc *p;
+    struct cpu *c = mycpu();
 
-  c->proc = 0;
-  for (;;) {
-    // Enable interrupts to avoid deadlocks if all processes are waiting
-    intr_on();
+    c->proc = 0;
+    for (;;) {
+     // Enable interrupts to avoid deadlocks if all processes are waiting       
+        intr_on();
 
-    int found = 0;
-    int id = cpuid();  // Get the current CPU ID
-
-    for (p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
+        int found = 0;
+        
+        for (p = proc; p < &proc[NPROC]; p++) {
+            acquire(&p->lock);
 
       // Check if process is runnable and if it is allowed to run on this CPU
-      if (p->state == RUNNABLE && (p->cpu_mask == 0 || (p->cpu_mask & (1 << id)))) {
-        // Switch to chosen process
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+            if (p->state == RUNNABLE && (p->cpu_mask == -1 || p->cpu_mask == cpuid())) {
+                // Switch to chosen process
+                p->state = RUNNING;
+                c->proc = p;
+                swtch(&c->context, &p->context);
 
-        // Process is done running for now; reset CPU's proc
-        c->proc = 0;
-        found = 1;
-      }
+              // Process is done running for now; reset CPU's proc
+                c->proc = 0;
+                found = 1;
+            }
 
-      release(&p->lock);
+            release(&p->lock);
+        }
+
+        if (found == 0) {
+          // No runnable processes; halt CPU until next interrupt
+            intr_on();
+            asm volatile("wfi");
+        }
     }
-
-    if (found == 0) {
-      // No runnable processes; halt CPU until next interrupt
-      intr_on();
-      asm volatile("wfi");
-    }
-  }
 }
 
 
@@ -631,15 +630,18 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
-  
+
   // Must acquire p->lock in order to
   // change p->state and then call sched.
   // Once we hold p->lock, we can be
   // guaranteed that we won't miss any wakeup
   // (wakeup locks p->lock),
   // so it's okay to release lk.
-
-  acquire(&p->lock);  //DOC: sleeplock1
+  
+  if (holding(&p->lock)) {
+    return;  
+  }
+  acquire(&p->lock); 
   release(lk);
 
   // Go to sleep.
