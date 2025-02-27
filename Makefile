@@ -5,7 +5,7 @@ U=user
 include proj2/user/Makefile
 include proj3/user/Makefile
 include proj4/user/Makefile
-
+include proj5/user/Makefile
 
 OBJS = \
 	$K/entry.o \
@@ -166,6 +166,7 @@ UPROGS=\
 	$U/_test_tasks\
 	$U/_test_rm\
 	$U/_showvm\
+	$U/_append-test\
 	
 # File system image
 fs.img: mkfs/mkfs README $(UPROGS)

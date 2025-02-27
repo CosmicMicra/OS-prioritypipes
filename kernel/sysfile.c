@@ -74,11 +74,17 @@ sys_write(void)
   
   argaddr(1, &p);
   argint(2, &n);
-  if(argfd(0, 0, &f) < 0)
+  if (argfd(0, 0, &f) < 0)
     return -1;
+
+  // Add a check to ensure file is writable
+  if (!f->writable) {
+    return -1;
+  }
 
   return filewrite(f, p, n);
 }
+
 
 uint64
 sys_close(void)
@@ -290,70 +296,85 @@ create(char *path, short type, short major, short minor)
 uint64
 sys_open(void)
 {
-  char path[MAXPATH];
-  int fd, omode;
-  struct file *f;
-  struct inode *ip;
-  int n;
+    char path[MAXPATH];
+    int fd, omode;
+    struct file *f;
+    struct inode *ip;
+    int n;
 
-  argint(1, &omode);
-  if((n = argstr(0, path, MAXPATH)) < 0)
-    return -1;
+    // Get the open mode and path arguments
+    argint(1, &omode);
+    if ((n = argstr(0, path, MAXPATH)) < 0)
+        return -1;
 
-  begin_op();
 
-  if(omode & O_CREATE){
-    ip = create(path, T_FILE, 0, 0);
-    if(ip == 0){
-      end_op();
-      return -1;
+    begin_op();
+
+    // Handle O_CREATE flag
+    if (omode & O_CREATE) {
+        ip = create(path, T_FILE, 0, 0);
+        if (ip == 0) {
+            end_op();
+            return -1;
+        }
+    } else {
+        if ((ip = namei(path)) == 0) {
+            end_op();
+            return -1;
+        }
+        ilock(ip);
+
+        // If trying to write to a directory, deny access
+        if (ip->type == T_DIR && omode != O_RDONLY) {
+            iunlockput(ip);
+            end_op();
+            return -1;
+        }
     }
-  } else {
-    if((ip = namei(path)) == 0){
-      end_op();
-      return -1;
-    }
-    ilock(ip);
-    if(ip->type == T_DIR && omode != O_RDONLY){
-      iunlockput(ip);
-      end_op();
-      return -1;
-    }
-  }
 
-  if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
-    iunlockput(ip);
+    // Validate device file
+    if (ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)) {
+        iunlockput(ip);
+        end_op();
+        return -1;
+    }
+
+    // Allocate file structure
+    if ((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0) {
+        if (f)
+            fileclose(f);
+        iunlockput(ip);
+        end_op();
+        return -1;
+    }
+
+    // Set file properties
+    if (ip->type == T_DEVICE) {
+        f->type = FD_DEVICE;
+        f->major = ip->major;
+    } else {
+        f->type = FD_INODE;
+        f->off = 0; // Default offset is 0
+
+        // Check for O_APPEND flag
+        if (omode & O_APPEND) {
+            f->off = ip->size; // Move offset to the end of the file
+        }
+    }
+
+    f->ip = ip;
+    f->readable = !(omode & O_WRONLY); // Readable if not O_WRONLY
+    f->writable = (omode & (O_WRONLY | O_RDWR)); // Writable if O_WRONLY or O_RDWR
+
+    // Handle O_TRUNC flag
+    if ((omode & O_TRUNC) && ip->type == T_FILE) {
+        itrunc(ip); // Truncate the file
+    }
+
+    iunlock(ip);
     end_op();
-    return -1;
-  }
 
-  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
-    if(f)
-      fileclose(f);
-    iunlockput(ip);
-    end_op();
-    return -1;
-  }
-
-  if(ip->type == T_DEVICE){
-    f->type = FD_DEVICE;
-    f->major = ip->major;
-  } else {
-    f->type = FD_INODE;
-    f->off = 0;
-  }
-  f->ip = ip;
-  f->readable = !(omode & O_WRONLY);
-  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
-
-  if((omode & O_TRUNC) && ip->type == T_FILE){
-    itrunc(ip);
-  }
-
-  iunlock(ip);
-  end_op();
-
-  return fd;
+    return fd;
 }
 
 uint64

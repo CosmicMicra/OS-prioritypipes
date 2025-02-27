@@ -9,6 +9,7 @@
 #include "stat.h"
 #include "proc.h"
 #include "pipe_rt.h"
+#include "fcntl.h"
 
 struct devsw devsw[NDEV];
 struct {
@@ -152,52 +153,64 @@ fileread(struct file *f, uint64 addr, int n)
 
 // Write to file f.
 // addr is a user virtual address.
-int
-filewrite(struct file *f, uint64 addr, int n)
-{
-  int r, ret = 0;
+int filewrite(struct file *f, uint64 addr, int n) {
+    int r, ret = 0;
 
-  if(f->writable == 0)
-    return -1;
-
-  switch(f->type) {
-    case FD_PIPE:
-      ret = pipewrite(f->pipe, addr, n);
-      break;
-    case FD_PIPE_RT:
-      ret = pipe_rt_write((struct pipe_rt*)f->pipe, addr, n);  // Updated for FD_PIPE_RT
-      break;
-    case FD_INODE:
-      int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
-      int i = 0;
-      while(i < n){
-        int n1 = n - i;
-        if(n1 > max)
-          n1 = max;
-
-        begin_op();
-        ilock(f->ip);
-        if((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0)
-          f->off += r;
-        iunlock(f->ip);
-        end_op();
-
-        if(r != n1){
-          // error from writei
-          break;
-        }
-        i += r;
-      }
-      ret = (i == n ? n : -1);
-      break;
-    case FD_DEVICE:
-      if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+    if (f->writable == 0) {
         return -1;
-      ret = devsw[f->major].write(1, addr, n);
-      break;
-    default:
-      panic("filewrite");
-  }
+    }
 
-  return ret;
+    switch (f->type) {
+        case FD_PIPE:
+            ret = pipewrite(f->pipe, addr, n);
+            break;
+
+        case FD_PIPE_RT:
+            ret = pipe_rt_write((struct pipe_rt *)f->pipe, addr, n);
+            break;
+
+        case FD_INODE:
+            begin_op();
+            ilock(f->ip);
+
+            // Ensure offset is set correctly when O_APPEND is used
+            if (f->writable & O_APPEND) {
+                f->off = f->ip->size;
+            }
+
+            int max = ((MAXOPBLOCKS - 1 - 1 - 2) / 2) * BSIZE;
+            int i = 0;
+
+            while (i < n) {
+                int n1 = n - i;
+                if (n1 > max)
+                    n1 = max;
+
+                if ((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0)
+                    f->off += r; // Increment offset
+
+                if (r < 0) {
+                    break;
+                }
+
+                i += r;
+            }
+
+            iunlock(f->ip);
+            end_op();
+            ret = (i == n) ? n : -1;
+            break;
+
+        case FD_DEVICE:
+            if (f->major < 0 || f->major >= NDEV || !devsw[f->major].write) {
+                return -1;
+            }
+            ret = devsw[f->major].write(1, addr, n);
+            break;
+
+        default:
+            return -1;
+    }
+
+    return ret;
 }
