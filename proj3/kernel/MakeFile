@@ -1,1 +1,1 @@
-OBJS += proj3/kernel/cpu_affinity.o 
+OBJS += proj3/kernel/cpu_affinity.o proj3/kernel/periodic_tasks.o proj3/kernel/timer.o 

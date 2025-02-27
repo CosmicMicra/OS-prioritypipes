@@ -5,17 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-
-typedef void (*xv6timer_callback_t)(struct xv6timer_t *);
-struct xv6timer_t;  
-struct proc;  
-
-struct xv6timer_t {
-    int expiry;         // Number of ticks between interrupts
-    uint next_tick;        
-    struct proc *proc;     
-    xv6timer_callback_t callback; 
-};
+#include "proj3/kernel/timer.h"
     
 struct spinlock tickslock;
 uint ticks;
@@ -171,29 +161,6 @@ kerneltrap()
   // so restore trap registers for use by kernelvec.S's sepc instruction.
   w_sepc(sepc);
   w_sstatus(sstatus);
-}
-
-void xv6timer_init(struct xv6timer_t *ptimer, struct proc *proc) {
-    ptimer->proc = proc;
-    ptimer->expiry = 0;
-    ptimer->next_tick = 0;
-    ptimer->callback = 0;
-}
-
-void xv6timer_forward(struct xv6timer_t *ptimer, int expiry) {
-    ptimer->expiry = expiry;
-    ptimer->next_tick = ticks + expiry;  
-}
-
-void xv6timer_register_callback(struct xv6timer_t *ptimer, void (*callback)(struct xv6timer_t *)) {
-    ptimer->callback = callback;
-}
-
-void xv6timer_interrupt(struct xv6timer_t *ptimer) {
-    if (ptimer->callback && ticks >= ptimer->next_tick) {
-        ptimer->callback(ptimer);  
-        ptimer->next_tick = ticks + ptimer->expiry;  
-    }
 }
 
 

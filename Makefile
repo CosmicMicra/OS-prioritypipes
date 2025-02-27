@@ -38,6 +38,8 @@ OBJS = \
 	proj2/kernel/pqueue.o \
 	proj2/kernel/pipe_rt.o \
 	proj3/kernel/cpu_affinity.o \
+	proj3/kernel/periodic_tasks.o \
+	proj3/kernel/timer.o \
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
