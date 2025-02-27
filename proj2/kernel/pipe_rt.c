@@ -2,16 +2,16 @@
 // Priority pipe implementation with priority queue
 
 
-#include "types.h"
-#include "riscv.h"
-#include "defs.h"
-#include "param.h"
-#include "spinlock.h"
-#include "proc.h"
-#include "fs.h"
-#include "sleeplock.h"
-#include "file.h"
-#include "pipe_rt.h"
+#include "kernel/types.h"
+#include "kernel/riscv.h"
+#include "kernel/defs.h"
+#include "kernel/param.h"
+#include "kernel/spinlock.h"
+#include "kernel/proc.h"
+#include "kernel/fs.h"
+#include "kernel/sleeplock.h"
+#include "kernel/file.h"
+#include "proj2/kernel/pipe_rt.h"
 
 static void
 pq_insert(struct pq_node **head, struct task_t task)
@@ -29,10 +29,6 @@ pq_insert(struct pq_node **head, struct task_t task)
         return;
     }
 
-    // Find correct position
-    
-    
-
     struct pq_node *current = *head;
     while (current->next != 0 && current->next->task.priority > task.priority) {
         current = current->next;
@@ -41,7 +37,6 @@ pq_insert(struct pq_node **head, struct task_t task)
     current->next = new;
 }
     
-
 
 static struct task_t
 pq_remove(struct pq_node **head)

@@ -8,7 +8,7 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
-#include "pipe_rt.h"
+#include "proj2/kernel/pipe_rt.h"
 #include "fcntl.h"
 
 struct devsw devsw[NDEV];
