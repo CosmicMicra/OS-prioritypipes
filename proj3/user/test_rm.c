@@ -26,9 +26,9 @@ void periodic_task(int period, int task_id) {
 }
 
 int main() {
-    int num_tasks = 1;
-    int periods[] = {5};  // Different periods
-    int task_ids[] = {1};   // Assign unique task IDs
+    int num_tasks = 3;
+    int periods[] = {5,15,30};  // Different periods
+    int task_ids[] = {1,2,3};   // Assign unique task IDs
 
     for (int i = 0; i < num_tasks; i++) {
         if (fork() == 0) {  // Child process
