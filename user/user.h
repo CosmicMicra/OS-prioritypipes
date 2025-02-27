@@ -29,6 +29,7 @@ int set_cpu_affinity(int);
 int setperiod(int);
 int wait_until_next_period(void);
 int show_vm_areas(void);
+int getfilesize(int*, char*);
 
 // ulib.c
 int stat(const char*, struct stat*);

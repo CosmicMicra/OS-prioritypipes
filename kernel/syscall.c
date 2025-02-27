@@ -106,7 +106,7 @@ extern uint64 sys_set_cpu_affinity(void);
 extern uint64 sys_setperiod(void);
 extern uint64 sys_wait_until_next_period(void);
 extern uint64 sys_show_vm_areas(void);
-
+extern uint64 sys_getfilesize(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -137,7 +137,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_setperiod] sys_setperiod,
 [SYS_wait_until_next_period] sys_wait_until_next_period,
 [SYS_show_vm_areas] sys_show_vm_areas,
-
+[SYS_getfilesize] sys_getfilesize,
 };
 
 void

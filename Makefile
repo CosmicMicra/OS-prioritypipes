@@ -167,6 +167,7 @@ UPROGS=\
 	$U/_test_rm\
 	$U/_showvm\
 	$U/_append-test\
+	$U/_getfilesize\
 	
 # File system image
 fs.img: mkfs/mkfs README $(UPROGS)
