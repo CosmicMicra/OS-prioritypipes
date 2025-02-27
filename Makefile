@@ -36,8 +36,8 @@ OBJS = \
 	$K/plic.o \
 	$K/virtio_disk.o \
 	proj2/kernel/pqueue.o \
-	proj2/kernel/pipe_rt.o
-
+	proj2/kernel/pipe_rt.o \
+	proj3/kernel/cpu_affinity.o \
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
