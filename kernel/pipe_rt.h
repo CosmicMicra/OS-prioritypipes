@@ -1,9 +1,9 @@
 #ifndef PIPE_RT_H
 #define PIPE_RT_H
 
-#include "kernel/types.h"
-#include "kernel/spinlock.h"
-#include "proj2/kernel/pqueue.h"
+#include "types.h"
+#include "spinlock.h"
+#include "pqueue.h"
 
 
 

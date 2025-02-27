@@ -1,9 +1,9 @@
-#include "proj2/kernel/pqueue.h"
-#include "kernel/types.h"
-#include "kernel/defs.h"
-#include "kernel/spinlock.h"
-#include "kernel/param.h"
-#include "kernel/proc.h"
+#include "pqueue.h"
+#include "types.h"
+#include "defs.h"
+#include "spinlock.h"
+#include "param.h"
+#include "proc.h"
 #include <stddef.h>
 
 #ifndef NULL

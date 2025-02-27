@@ -35,8 +35,9 @@ OBJS = \
 	$K/kernelvec.o \
 	$K/plic.o \
 	$K/virtio_disk.o \
-  	proj2/kernel/pqueue.o \
-  	proj2/kernel/pipe_rt.o \
+	$K/pqueue.o \
+	$K/pipe_rt.o
+
 
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
