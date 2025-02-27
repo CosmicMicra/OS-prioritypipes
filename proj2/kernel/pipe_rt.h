@@ -3,9 +3,7 @@
 
 #include "kernel/types.h"
 #include "kernel/spinlock.h"
-#include "kernel/pqueue.h"
-
-
+#include "proj2/kernel/pqueue.h"
 
 struct spinlock;  // Forward declaration
 struct pq_node;   // Forward declaration

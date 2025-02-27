@@ -35,7 +35,7 @@ OBJS = \
 	$K/kernelvec.o \
 	$K/plic.o \
 	$K/virtio_disk.o \
-	$K/pqueue.o \
+	proj2/kernel/pqueue.o \
 	proj2/kernel/pipe_rt.o
 
 
