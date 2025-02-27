@@ -40,7 +40,8 @@ OBJS = \
 	proj3/kernel/cpu_affinity.o \
 	proj3/kernel/periodic_tasks.o \
 	proj3/kernel/timer.o \
-
+	proj5/kernel/getfilesize.o \
+	
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
 #TOOLPREFIX = 
