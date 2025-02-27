@@ -27,14 +27,19 @@ void periodic_task(int period, int task_id) {
 
 int main() {
     int num_tasks = 3;
-    int periods[] = {5,15,30};  // Different periods
+    int periods[] = {1,5,10};  // Different periods
     int task_ids[] = {1,2,3};   // Assign unique task IDs
 
-    for (int i = 0; i < num_tasks; i++) {
-        if (fork() == 0) {  // Child process
-            periodic_task(periods[i], task_ids[i]);
-            exit(0);
+    if(num_tasks < 5) {
+        for (int i = 0; i < num_tasks; i++) {
+            if (fork() == 0) {  // Child process
+                periodic_task(periods[i], task_ids[i]);
+                exit(0);
+            }
         }
+    }else{
+        printf("Too many tasks running. Error code: -1\n");
+        return -1;
     }
 
     // Wait for all tasks (though they run indefinitely)
