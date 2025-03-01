@@ -26,3 +26,4 @@
 #define SYS_wait_until_next_period      25
 #define SYS_show_vm_areas               26
 #define SYS_getfilesize                 27
+#define SYS_shmget                      28

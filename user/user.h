@@ -49,3 +49,6 @@ void *memcpy(void *, const void *, uint);
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+
+
+uint64 shmget(int key, uint64 size);

@@ -42,3 +42,4 @@ entry("setperiod");
 entry("wait_until_next_period");
 entry("show_vm_areas");
 entry("getfilesize");
+entry("shmget");

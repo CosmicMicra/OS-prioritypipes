@@ -206,3 +206,8 @@ void            virtio_disk_intr(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+
+// shm.c
+int           shmem_fork(pagetable_t, pagetable_t);
+void          shmem_exit(void);

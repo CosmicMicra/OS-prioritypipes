@@ -1,1 +1,2 @@
 OBJS += proj3/kernel/show_vm.o
+OBJS += proj3/kernel/shm.o

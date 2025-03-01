@@ -296,6 +296,16 @@ fork(void)
   }
   np->sz = p->sz;
 
+  // Copy shared memory mappings
+  if(shmem_fork(p->pagetable, np->pagetable) < 0){
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
+
+
+
+
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -360,6 +370,11 @@ exit(int status)
     }
   }
 
+  // Clean up shared memory
+  shmem_exit();
+
+
+
   begin_op();
   iput(p->cwd);
   end_op();
@@ -384,6 +399,7 @@ exit(int status)
   sched();
   panic("zombie exit");
 }
+
 
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.

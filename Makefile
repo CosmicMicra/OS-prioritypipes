@@ -42,6 +42,7 @@ OBJS = \
 	proj3/kernel/timer.o \
 	proj4/kernel/show_vm.o \
 	proj5/kernel/getfilesize.o \
+	proj4/kernel/shm.o \
 	
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -171,7 +172,8 @@ UPROGS=\
 	$U/_showvm\
 	$U/_append-test\
 	$U/_getfilesize\
-	
+	$U/_shmtest\
+
 # File system image
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
