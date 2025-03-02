@@ -30,14 +30,9 @@ int sys_show_vm_areas(void) {
                 pages++;
             }
         } else if (pages > 0) {
-            printf("0x%lx - 0x%lx: %d\n", prev_va, va, pages);
+            printf("Region: 0x%lx - 0x%lx: %d\n", prev_va, va, pages);
             pages = 0;
         }
-    }
-
-    // Print the last region if it was never terminated
-    if (pages > 0) {
-        printf("0x%lx - 0x%lx: %d\n", prev_va, va, pages);
     }
 
     return 0;
