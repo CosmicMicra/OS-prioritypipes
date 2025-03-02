@@ -24,18 +24,20 @@ int sys_show_vm_areas(void) {
         pte_t *pte = walk(pt, va, 0);
         if (pte && (*pte & PTE_V)) {
             if (pages == 0) {
-                // Start of a new memory-mapped region
                 prev_va = va;
                 pages = 1;
             } else {
-                // Continuation of the previous region
                 pages++;
             }
         } else if (pages > 0) {
-            // End of a region, print details
             printf("0x%lx - 0x%lx: %d\n", prev_va, va, pages);
             pages = 0;
         }
+    }
+
+    // Print the last region if it was never terminated
+    if (pages > 0) {
+        printf("0x%lx - 0x%lx: %d\n", prev_va, va, pages);
     }
 
     return 0;

@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "*.html": "html",
-        "param.h": "c",
-        "types.h": "c",
-        "proc.h": "c"
-    }
-}
