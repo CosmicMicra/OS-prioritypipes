@@ -1,96 +1,72 @@
-
-# xv6 Operating System Projects
-
+xv6 Operating System Projects
 This repository contains implementations for five projects that extend the xv6 operating system, covering fundamental operating systems concepts including system calls, concurrency, scheduling, memory management, and file systems.
 
+Course Information
+Course: CSEN283 - Operating Systems Platform: xv6-riscv operating system Architecture: RISC-V
 
-## Course Information
-
-Course: CSEN283 - Operating Systems
-Platform: xv6-riscv operating system
-Architecture: RISC-V
-
-### Project Overview
-
-#### Project 1 - System Calls (proj1/)
-
-- Focus: Introduction to system call implementation and kernel-user space communication
+Project Overview
+Project 1 - System Calls (proj1/)
+Focus: Introduction to system call implementation and kernel-user space communication
 Implementation:
 
-- System Call: calculate(int x, int y, char* op, int* result)
-Performs arithmetic operations (+, -, *, /) in kernel space. 
+System Call: calculate(int x, int y, char* op, int* result)
+Performs arithmetic operations (+, -, *, /) in kernel space.
 
-- Handles error cases (invalid operators, division by zero).
+Handles error cases (invalid operators, division by zero).
 
-- Demonstrates parameter passing between user and kernel space using copyin() and copyout()
+Demonstrates parameter passing between user and kernel space using copyin() and copyout()
 
 Key Learning: System call implementation, kernel-user space transitions, argument handling
 
-#### Project 2 - Concurrency and Synchronization (proj2/)
-- Focus: Inter-process communication and priority-based task management
+Project 2 - Concurrency and Synchronization (proj2/)
+Focus: Inter-process communication and priority-based task management
 Parts:
 
- - ##### Part 1: Basic pipe-based IPC with parent server and multiple child clients
-- ##### Part 2: Prioritized pipe implementation with new pipe_rt() system call
-- ##### Part 3: Priority queue using linked lists for task scheduling
-
-##### Key Features:
-
-- Tasks include priority field (higher number = higher priority)
-- Linked list implementation for O(n) insertion, O(1) removal
-- Server processes client requests in priority order
-
+Part 1: Basic pipe-based IPC with parent server and multiple child clients
+Part 2: Prioritized pipe implementation with new pipe_rt() system call
+Part 3: Priority queue using linked lists for task scheduling
+Key Features:
+Tasks include priority field (higher number = higher priority)
+Linked list implementation for O(n) insertion, O(1) removal
+Server processes client requests in priority order
 Key Learning: IPC mechanisms, priority queues, synchronization, producer-consumer patterns
 
-#### Project 3 - Timer, Trap and Scheduling (proj3/)
-- Focus: Timer interrupts, scheduling algorithms, and real-time systems.
-
-#### Parts:
-
-- ##### Part 1: CPU affinity with set_cpu_affinity(int cpu_mask) system call
-- ##### Part 2: Custom timer implementation with callback functions
-- ##### Part 3: Periodic tasks using setperiod() and wait_until_next_period() system calls
-- ##### Part 4: Rate Monotonic Scheduling (RMS) implementation
-
-##### Key Features:
-
-- Custom timer structure with expiry times and callbacks
-- Periodic task support for real-time applications
-- RMS scheduler (shorter period = higher priority)
-- Falls back to round-robin when no real-time tasks available
-- Supports up to 4 concurrent periodic tasks
-
+Project 3 - Timer, Trap and Scheduling (proj3/)
+Focus: Timer interrupts, scheduling algorithms, and real-time systems.
+Parts:
+Part 1: CPU affinity with set_cpu_affinity(int cpu_mask) system call
+Part 2: Custom timer implementation with callback functions
+Part 3: Periodic tasks using setperiod() and wait_until_next_period() system calls
+Part 4: Rate Monotonic Scheduling (RMS) implementation
+Key Features:
+Custom timer structure with expiry times and callbacks
+Periodic task support for real-time applications
+RMS scheduler (shorter period = higher priority)
+Falls back to round-robin when no real-time tasks available
+Supports up to 4 concurrent periodic tasks
 Key Learning: Timer interrupts, scheduling algorithms, real-time systems, trap handling
 
-#### Project 4 - Memory Management (proj4/)
-- Focus: Virtual memory management and shared memory IPC
-
-#### Parts:
-
-- ##### Part 1: Memory mapping visualization with show_vm_areas() system call
-- ##### Part 2: Shared memory IPC using shmget(int key, uint64 size) system call
-
-##### Key Features:
-
-- Displays process memory layout (start/end addresses, page counts)
-- Shared memory implementation for efficient IPC
-- Improves on Project 2 by eliminating multiple pipes
-- Supports at least 10 concurrent clients
-- Memory allocated in high virtual addresses near MAXVA
-
+Project 4 - Memory Management (proj4/)
+Focus: Virtual memory management and shared memory IPC
+Parts:
+Part 1: Memory mapping visualization with show_vm_areas() system call
+Part 2: Shared memory IPC using shmget(int key, uint64 size) system call
+Key Features:
+Displays process memory layout (start/end addresses, page counts)
+Shared memory implementation for efficient IPC
+Improves on Project 2 by eliminating multiple pipes
+Supports at least 10 concurrent clients
+Memory allocated in high virtual addresses near MAXVA
 Key Learning: Page tables, virtual memory, shared memory, memory management
 
-#### Project 5 - File Systems (proj5/)
-- Focus: File system internals and inode operations
+Project 5 - File Systems (proj5/)
+Focus: File system internals and inode operations
 Parts:
 
-- ##### Part 1: File size retrieval with getfilesize(int* size, char* filepath) system call
-- ##### Part 2: File append mode implementation with O_APPEND flag support
-
-##### Key Features:
-
-- Direct inode access for file size information
-- Append mode ensures all writes occur at end of file
-- Compatible with existing open() system call interface
-
+Part 1: File size retrieval with getfilesize(int* size, char* filepath) system call
+Part 2: File append mode implementation with O_APPEND flag support
+Key Features:
+Direct inode access for file size information
+Append mode ensures all writes occur at end of file
+Compatible with existing open() system call interface
 Key Learning: File system structures, inodes, file operations, file control flags
